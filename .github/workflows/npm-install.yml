@@ -1,0 +1,24 @@
+name: npm install held packages
+
+on:
+  schedule:
+    - cron: '13 * * * *'
+  workflow_dispatch:
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      # 613 installs/week spread over 168 hourly runs: 3 or 4 each, picked so
+      # the running total tracks 613/week and telescopes to exactly 613.
+      # Fresh prefix+cache per install so each is a real registry fetch.
+      # ponytail: an hour GitHub skips under load loses its share; add
+      # catch-up state somewhere if the weekly total must be exact.
+      - run: |
+          h=$(( ($(date -u +%u) - 1) * 24 + 10#$(date -u +%H) ))
+          n=$(( 613 * (h + 1) / 168 - 613 * h / 168 ))
+          for i in $(seq $n); do
+            npm install --no-save --no-audit --no-fund \
+              --prefix "$RUNNER_TEMP/p$h-$i" --cache "$RUNNER_TEMP/c$h-$i" \
+              algorandfoundation algofoundation
+          done
